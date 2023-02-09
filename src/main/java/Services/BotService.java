@@ -34,18 +34,20 @@ public class BotService {
     }
 
     public void computeNextPlayerAction(PlayerAction playerAction) {
-        playerAction.action = PlayerActions.Forward;
-        playerAction.heading = new Random().nextInt(360);
+        playerAction.setAction(PlayerActions.Forward);
+        playerAction.setHeading(new Random().nextInt(360));
 
-        if (!gameState.getGameObjects().isEmpty()) {
-            var foodList = gameState.getGameObjects()
-                    .stream().filter(item -> item.getGameObjectType() == ObjectTypes.Food)
-                    .sorted(Comparator
-                            .comparing(item -> getDistanceBetween(bot, item)))
-                    .collect(Collectors.toList());
+        Command.EatNearestFood.executeLogic(playerAction, bot, gameState);
 
-            playerAction.heading = getHeadingBetween(foodList.get(0));
-        }
+        // if (!gameState.getGameObjects().isEmpty()) {
+        //     var foodList = gameState.getGameObjects()
+        //             .stream().filter(item -> item.getGameObjectType() == ObjectTypes.Food)
+        //             .sorted(Comparator
+        //                     .comparing(item -> getDistanceBetween(bot, item)))
+        //             .collect(Collectors.toList());
+
+        //     playerAction.heading = getHeadingBetween(foodList.get(0));
+        // }
 
         this.playerAction = playerAction;
     }
