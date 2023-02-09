@@ -41,7 +41,7 @@ public enum Command {
         this.logic = logic;
     }
 
-    public void executeLogic(PlayerAction playerAction, GameObject bot, GameState gameState) {
+    public void execute(PlayerAction playerAction, GameObject bot, GameState gameState) {
         this.logic.execute(playerAction, bot, gameState);
     }
 }

@@ -37,7 +37,7 @@ public class BotService {
         playerAction.setAction(PlayerActions.FORWARD);
         playerAction.setHeading(new Random().nextInt(360));
 
-        Command.EAT_NEAREST_FOOD.executeLogic(playerAction, bot, gameState);
+        Command.EAT_NEAREST_FOOD.execute(playerAction, bot, gameState);
 
         // if (!gameState.getGameObjects().isEmpty()) {
         //     var foodList = gameState.getGameObjects()
