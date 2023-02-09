@@ -18,9 +18,9 @@ public enum Effects {
 
     public static List<Effects> parse(Integer value) {
         List<Effects> activeEffects = new ArrayList<>();
-        for (int i = 0; i < Effects.values().length; i++) {
-            if (((value >> i) & 1) == 1) {
-                activeEffects.add(Effects.values()[i]);
+        for (Effects effect : Effects.values()) {
+            if ((value | effect.value) == value) {
+                activeEffects.add(effect);
             }
         }
         return activeEffects;
