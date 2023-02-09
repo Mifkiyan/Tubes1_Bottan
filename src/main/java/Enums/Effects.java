@@ -4,11 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public enum Effects {
-    Afterburner(1),
-    AsteroidField(2),
-    GasCloud(4),
-    Superfood(8),
-    Shield(16);
+    AFTERBURNER(1),
+    ASTEROID_FIELD(2),
+    GAS_CLOUD(4),
+    SUPERFOOD(8),
+    SHIELD(16);
 
     public final Integer value;
 

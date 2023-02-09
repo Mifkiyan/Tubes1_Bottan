@@ -9,20 +9,20 @@ import Utils.CommandLogic;
 import Utils.Util;
 
 public enum Command {
-    EatNearestFood((playerAction, bot, gameState) -> {
+    EAT_NEAREST_FOOD((playerAction, bot, gameState) -> {
         if (!gameState.getGameObjects().isEmpty()) {
             var nearestFood = gameState.getGameObjects()
                     .stream()
-                    .filter(item -> item.getGameObjectType() == ObjectTypes.Food)
+                    .filter(item -> item.getGameObjectType() == ObjectTypes.FOOD)
                     .min(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
                     .get();
 
-            playerAction.setAction(PlayerActions.Forward);
+            playerAction.setAction(PlayerActions.FORWARD);
             playerAction.setHeading(Util.getHeadingBetween(bot, nearestFood));
         }
     }),
 
-    AttackNearestOpponent((playerAction, bot, gameState) -> {
+    ATTACK_NEAREST_OPPONENT((playerAction, bot, gameState) -> {
         if (!gameState.getGameObjects().isEmpty()) {
             var nearestOpponent = gameState.getPlayerGameObjects()
                     .stream()
@@ -30,7 +30,7 @@ public enum Command {
                     .min(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
                     .get();
 
-            playerAction.setAction(PlayerActions.Forward);
+            playerAction.setAction(PlayerActions.FORWARD);
             playerAction.setHeading(Util.getHeadingBetween(bot, nearestOpponent));
         }
     });

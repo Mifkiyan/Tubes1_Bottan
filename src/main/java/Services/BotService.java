@@ -34,10 +34,10 @@ public class BotService {
     }
 
     public void computeNextPlayerAction(PlayerAction playerAction) {
-        playerAction.setAction(PlayerActions.Forward);
+        playerAction.setAction(PlayerActions.FORWARD);
         playerAction.setHeading(new Random().nextInt(360));
 
-        Command.EatNearestFood.executeLogic(playerAction, bot, gameState);
+        Command.EAT_NEAREST_FOOD.executeLogic(playerAction, bot, gameState);
 
         // if (!gameState.getGameObjects().isEmpty()) {
         //     var foodList = gameState.getGameObjects()

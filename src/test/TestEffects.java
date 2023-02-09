@@ -11,18 +11,18 @@ public class TestEffects {
 
     @Test
     public void testParseEffects() {
-        Integer value = Effects.Afterburner.value;
+        Integer value = Effects.AFTERBURNER.value;
         List<Effects> actual = Effects.parse(value);
         List<Effects> expected = Arrays.asList(
-            Effects.Afterburner
+            Effects.AFTERBURNER
         );
         assertEquals(expected, actual);
 
-        value = Effects.AsteroidField.value | Effects.Superfood.value;
+        value = Effects.ASTEROID_FIELD.value | Effects.SUPERFOOD.value;
         actual = Effects.parse(value);
         expected = Arrays.asList(
-            Effects.AsteroidField,
-            Effects.Superfood
+            Effects.ASTEROID_FIELD,
+            Effects.SUPERFOOD
         );
 
         assertEquals(expected, actual);
