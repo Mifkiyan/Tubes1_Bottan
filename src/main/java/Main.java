@@ -26,13 +26,13 @@ public class Main {
                 .build();
 
         hubConnection.on("Disconnect", (id) -> {
-            System.out.println("Disconnected:");
+            logger.warn("Disconnected:");
 
             hubConnection.stop();
         }, UUID.class);
 
         hubConnection.on("Registered", (id) -> {
-            System.out.println("Registered with the runner " + id);
+            logger.info("Registered with the runner " + id);
 
             Position position = new Position();
             GameObject bot = new GameObject(id, 10, 20, 0, position, ObjectTypes.PLAYER, Effects.parse(0));
@@ -54,10 +54,12 @@ public class Main {
             botService.setGameState(gameState);
         }, GameStateDto.class);
 
+        hubConnection.on("ReceivePlayerConsumed", () -> logger.info("Bot consumed"));
+
         hubConnection.start().blockingAwait();
 
         Thread.sleep(1000);
-        System.out.println("Registering with the runner...");
+        logger.info("Registering with the runner...");
         hubConnection.send("Register", token, "Coffee Bot");
 
         //This is a blocking call

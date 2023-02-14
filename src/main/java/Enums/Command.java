@@ -33,15 +33,44 @@ public enum Command {
             playerAction.setAction(PlayerActions.FORWARD);
             playerAction.setHeading(Util.getHeadingBetween(bot, nearestOpponent));
         }
+    }),
+
+    ESCAPE_FROM_ATTACKER((playerAction, bot, gameState) -> {
+
     });
 
     private final CommandLogic logic;
 
+    private Integer profit;
+    private DangerLevel dangerLevel;
+
     private Command(final CommandLogic logic) {
         this.logic = logic;
+        profit = 0;
+        dangerLevel = DangerLevel.LOW;
+    }
+
+    public Integer getProfit() {
+        return profit;
+    }
+
+    public DangerLevel getDangerLevel() {
+        return dangerLevel;
+    }
+
+    public void setProfit(Integer profit) {
+        this.profit = profit;
+    }
+
+    public void setDangerLevel(DangerLevel dangerLevel) {
+        this.dangerLevel = dangerLevel;
+    }
+
+    public double getDensity() {
+        return (double) profit / (double) dangerLevel.value;
     }
 
     public void execute(PlayerAction playerAction, GameObject bot, GameState gameState) {
-        this.logic.execute(playerAction, bot, gameState);
+        logic.execute(playerAction, bot, gameState);
     }
 }
