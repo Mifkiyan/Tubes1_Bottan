@@ -51,9 +51,9 @@ public class BotService {
                 .sorted(Comparator.comparing(Command::getDensity, Comparator.reverseOrder()))
                 .collect(Collectors.toList());
 
-        commands.forEach(
-                item -> System.out.println(String.format("{Command: %s, Profit: %d, DangerLevel: %s, Density: %f}",
-                        item.toString(), item.getProfit(), item.getDangerLevel().toString(), item.getDensity())));
+        // commands.forEach(
+        //         item -> System.out.println(String.format("{Command: %s, Profit: %d, DangerLevel: %s, Density: %f}",
+        //                 item.toString(), item.getProfit(), item.getDangerLevel().toString(), item.getDensity())));
 
         int idx = 0;
         do {
@@ -91,6 +91,7 @@ public class BotService {
     }
 
     void setUpAttackingSituation() {
+        Command.ESCAPE_FROM_ATTACKER.setDangerLevel(DangerLevel.LOW);
         if (gameState.playerGameObjects.isEmpty()) {
             return;
         }
@@ -108,16 +109,17 @@ public class BotService {
 
         Command.ATTACK_NEAREST_OPPONENT.setProfit(enemy1.getSize() / 2);
 
-        if (enemy1.size > bot.size) {
+        if (enemy1.size > bot.size - 6) {
             Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.EXTREME);
+            Command.ESCAPE_FROM_ATTACKER.setProfit(enemy1.size - (int) Util.getDistanceBetween(enemy1, bot) / 2);
         } else {
-            Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.MODERATE);
+            Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.HIGH);
             if (enemy2 != null) {
                 if (enemy2.size > enemy1.size
                         && Util.getDistanceBetween(enemy1, enemy2) < Util.getDistanceBetween(enemy1, bot)) {
                     Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.EXTREME);
                 } else {
-                    Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.HIGH);
+                    Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.VERY_HIGH);
                 }
             }
         }
