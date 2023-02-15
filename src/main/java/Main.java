@@ -56,11 +56,13 @@ public class Main {
 
         hubConnection.on("ReceivePlayerConsumed", () -> logger.info("Bot consumed"));
 
+        hubConnection.on("ReceiveGameComplete", (info) -> logger.info("Game complete: " + info), String.class);
+
         hubConnection.start().blockingAwait();
 
         Thread.sleep(1000);
         logger.info("Registering with the runner...");
-        hubConnection.send("Register", token, "Coffee Bot");
+        hubConnection.send("Register", token, "Bottan");
 
         //This is a blocking call
         hubConnection.start().subscribe(() -> {

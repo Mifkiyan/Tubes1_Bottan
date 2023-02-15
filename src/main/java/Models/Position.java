@@ -15,6 +15,11 @@ public class Position {
     this.y = y;
   }
 
+  public void add(Position other) {
+    x += other.x;
+    y += other.y;
+  }
+
   public int getX() {
     return x;
   }

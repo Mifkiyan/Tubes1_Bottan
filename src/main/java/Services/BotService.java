@@ -43,47 +43,8 @@ public class BotService {
         playerAction.setAction(PlayerActions.FORWARD);
         playerAction.setHeading(rand.nextInt(360));
 
-        if (!gameState.getPlayerGameObjects().isEmpty() && !gameState.getGameObjects().isEmpty()) {
-            var opponentList = gameState.getPlayerGameObjects()
-                    .stream()
-                    .filter(item -> !item.getId().equals(bot.getId()))
-                    .sorted(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
-                    .collect(Collectors.toList());
-
-            var foodList = gameState.getGameObjects()
-                    .stream()
-                    .filter(item -> item.getGameObjectType() == ObjectTypes.FOOD
-                            || item.getGameObjectType() == ObjectTypes.SUPERFOOD)
-                    .sorted(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
-                    .collect(Collectors.toList());
-
-            var nearestOpponent = opponentList.get(0);
-            var nearestFood = foodList.get(0);
-
-            Command.ATTACK_NEAREST_OPPONENT.setProfit(nearestOpponent.getSize() / 2);
-            Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.HIGH);
-
-            Command.EAT_NEAREST_FOOD.setProfit((nearestFood.gameObjectType == ObjectTypes.SUPERFOOD ? 6 : 3) * bot.speed);
-            Command.EAT_NEAREST_FOOD.setDangerLevel(DangerLevel.LOW);
-
-            if (bot.activEffects.contains(Effects.SUPERFOOD)) {
-                Command.EAT_NEAREST_FOOD.setProfit(Command.EAT_NEAREST_FOOD.getProfit() * 2);
-            }
-
-            if (nearestOpponent.getSize() < bot.getSize()) {
-                Command.ATTACK_NEAREST_OPPONENT.setProfit(nearestOpponent.getSize() / 2);
-                Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.valueOf(
-                        Math.min(DangerLevel.EXTREME.value,
-                                (int) (Math.ceil((double) nearestOpponent.size / (double) bot.size * 5)))));
-            } else {
-                Command.EAT_NEAREST_FOOD.setProfit((int) (Command.EAT_NEAREST_FOOD.getProfit() * 1.5));
-                Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.EXTREME);
-            }
-
-            if (getDistanceBetween(bot, nearestFood) < getDistanceBetween(nearestOpponent, nearestFood)) {
-                Command.EAT_NEAREST_FOOD.setDangerLevel(DangerLevel.HIGH);
-            }
-        }
+        setUpAttackingSituation();
+        setUpFeedingSituation();
 
         var commands = Arrays.asList(Command.values())
                 .stream()
@@ -100,19 +61,66 @@ public class BotService {
             idx++;
         } while (command.getDangerLevel() == DangerLevel.EXTREME && idx < Command.values().length);
 
-        // if (!gameState.getGameObjects().isEmpty()) {
-        // var foodList = gameState.getGameObjects()
-        // .stream().filter(item -> item.getGameObjectType() == ObjectTypes.Food)
-        // .sorted(Comparator
-        // .comparing(item -> getDistanceBetween(bot, item)))
-        // .collect(Collectors.toList());
-
-        // playerAction.heading = getHeadingBetween(foodList.get(0));
-        // }
-
         command.execute(playerAction, bot, gameState);
         logger.info("Execute command: " + command.toString());
         this.playerAction = playerAction;
+    }
+
+    void setUpFeedingSituation() {
+        if (gameState.gameObjects.isEmpty()) {
+            return;
+        }
+        var nearestFood = gameState.getGameObjects()
+                .stream()
+                .filter(item -> item.getGameObjectType() == ObjectTypes.FOOD
+                        || item.getGameObjectType() == ObjectTypes.SUPERFOOD)
+                .min(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
+                .orElse(null);
+        Command.EAT_NEAREST_FOOD.setProfit(0);
+        Command.EAT_NEAREST_FOOD.setDangerLevel(DangerLevel.LOW);
+        if (nearestFood != null) {
+            Command.EAT_NEAREST_FOOD.setProfit(bot.speed);
+            if (bot.activEffects.contains(Effects.SUPERFOOD)) {
+                Command.EAT_NEAREST_FOOD.setProfit(bot.speed * 2);
+            }
+            Command.EAT_NEAREST_FOOD.setDangerLevel(DangerLevel.valueOf(
+                    (int) Math.ceil(Util.normalize(
+                            Util.euclideanDistance(nearestFood.getPosition(), gameState.getWorld().getCenterPoint()), 0,
+                            gameState.getWorld().getRadius()) * 5)));
+        }
+    }
+
+    void setUpAttackingSituation() {
+        if (gameState.playerGameObjects.isEmpty()) {
+            return;
+        }
+        var opponentList = gameState.getPlayerGameObjects()
+                .stream()
+                .filter(item -> !item.getId().equals(bot.getId()))
+                .sorted(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
+                .collect(Collectors.toList());
+        var enemy1 = opponentList.get(0); // nearest from bot
+        var enemy2 = opponentList // nearest from enemy1
+                .stream()
+                .filter(item -> !item.getId().equals(enemy1.getId()))
+                .min(Comparator.comparing(item -> Util.getDistanceBetween(item, enemy1)))
+                .orElse(null);
+
+        Command.ATTACK_NEAREST_OPPONENT.setProfit(enemy1.getSize() / 2);
+
+        if (enemy1.size > bot.size) {
+            Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.EXTREME);
+        } else {
+            Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.MODERATE);
+            if (enemy2 != null) {
+                if (enemy2.size > enemy1.size
+                        && Util.getDistanceBetween(enemy1, enemy2) < Util.getDistanceBetween(enemy1, bot)) {
+                    Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.EXTREME);
+                } else {
+                    Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.HIGH);
+                }
+            }
+        }
     }
 
     public GameState getGameState() {
@@ -128,22 +136,6 @@ public class BotService {
         Optional<GameObject> optionalBot = gameState.getPlayerGameObjects().stream()
                 .filter(gameObject -> gameObject.id.equals(bot.id)).findAny();
         optionalBot.ifPresent(bot -> this.bot = bot);
-    }
-
-    private double getDistanceBetween(GameObject object1, GameObject object2) {
-        var triangleX = Math.abs(object1.getPosition().x - object2.getPosition().x);
-        var triangleY = Math.abs(object1.getPosition().y - object2.getPosition().y);
-        return Math.sqrt(triangleX * triangleX + triangleY * triangleY);
-    }
-
-    private int getHeadingBetween(GameObject otherObject) {
-        var direction = toDegrees(Math.atan2(otherObject.getPosition().y - bot.getPosition().y,
-                otherObject.getPosition().x - bot.getPosition().x));
-        return (direction + 360) % 360;
-    }
-
-    private int toDegrees(double v) {
-        return (int) (v * (180 / Math.PI));
     }
 
 }

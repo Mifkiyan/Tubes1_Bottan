@@ -1,12 +1,11 @@
 package Utils;
 
 import Models.GameObject;
+import Models.Position;
 
 public class Util {
     public static double getDistanceBetween(GameObject object1, GameObject object2) {
-        var triangleX = Math.abs(object1.getPosition().x - object2.getPosition().x);
-        var triangleY = Math.abs(object1.getPosition().y - object2.getPosition().y);
-        return Math.sqrt(triangleX * triangleX + triangleY * triangleY);
+        return euclideanDistance(object1.position, object2.position);
     }
 
     public static int getHeadingBetween(GameObject bot, GameObject otherObject) {
@@ -15,7 +14,17 @@ public class Util {
         return (direction + 360) % 360;
     }
 
+    public static double euclideanDistance(Position pos1, Position pos2) {
+        var deltaX = pos1.x - pos2.x;
+        var deltaY = pos1.y - pos2.y;
+        return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    }
+
     public static int toDegrees(double v) {
         return (int) (v * (180 / Math.PI));
+    }
+
+    public static double normalize(double value, double max, double min) {
+        return (value - min) / (max - min);
     }
 }
