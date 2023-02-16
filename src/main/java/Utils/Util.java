@@ -8,6 +8,16 @@ public class Util {
         return euclideanDistance(object1.position, object2.position);
     }
 
+    public static int getHeadingToCenter(GameObject bot) {
+        var direction = toDegrees(Math.atan2(0 - bot.getPosition().y,
+                0 - bot.getPosition().x));
+        return (direction + 360) % 360;
+    }
+
+    public static boolean valueBetween(double value, double min, double max) {
+        return min <= value && value <= max;
+    }
+
     public static int getHeadingBetween(GameObject bot, GameObject otherObject) {
         var direction = toDegrees(Math.atan2(otherObject.getPosition().y - bot.getPosition().y,
                 otherObject.getPosition().x - bot.getPosition().x));
