@@ -13,7 +13,8 @@ public enum Command {
         if (!gameState.getGameObjects().isEmpty()) {
             var nearestFood = gameState.getGameObjects()
                     .stream()
-                    .filter(item -> item.getGameObjectType() == ObjectTypes.FOOD)
+                    .filter(item -> item.getGameObjectType() == ObjectTypes.FOOD
+                            || item.getGameObjectType() == ObjectTypes.SUPERFOOD)
                     .min(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
                     .get();
 
@@ -33,15 +34,77 @@ public enum Command {
             playerAction.setAction(PlayerActions.FORWARD);
             playerAction.setHeading(Util.getHeadingBetween(bot, nearestOpponent));
         }
+    }),
+
+    ESCAPE_FROM_ATTACKER((playerAction, bot, gameState) -> {
+        if (!gameState.getGameObjects().isEmpty() && !gameState.getPlayerGameObjects().isEmpty()) {
+            var nearestOpponent = gameState.getPlayerGameObjects()
+                    .stream()
+                    .filter(item -> !item.getId().equals(bot.getId()))
+                    .min(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
+                    .get();
+            var targetFood = gameState.getGameObjects()
+                    .stream()
+                    .filter(item -> (item.getGameObjectType() == ObjectTypes.FOOD
+                            || item.getGameObjectType() == ObjectTypes.SUPERFOOD)
+                            && Util.getHeadingBetween(bot, item) > Util.getHeadingBetween(nearestOpponent, item))
+                    .min(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
+                    .orElse(null);
+
+            playerAction.setAction(PlayerActions.FORWARD);
+            if (targetFood != null) {
+                playerAction.setHeading(Util.getHeadingBetween(bot, targetFood));
+            } else {
+                playerAction.setHeading(-Util.getHeadingBetween(bot, nearestOpponent));
+            }
+        }
+    }),
+
+    FIRE_TORPEDO((playerAction, bot, gameState) -> {
+        if (!gameState.getGameObjects().isEmpty()) {
+            var nearestOpponent = gameState.getPlayerGameObjects()
+                    .stream()
+                    .filter(item -> !item.getId().equals(bot.getId()))
+                    .min(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
+                    .get();
+
+            playerAction.setAction(PlayerActions.FIRETORPEDOES);
+            playerAction.setHeading(Util.getHeadingBetween(bot, nearestOpponent));
+        }
     });
 
     private final CommandLogic logic;
 
+    private Integer profit;
+    private DangerLevel dangerLevel;
+
     private Command(final CommandLogic logic) {
         this.logic = logic;
+        profit = 0;
+        dangerLevel = DangerLevel.LOW;
+    }
+
+    public Integer getProfit() {
+        return profit;
+    }
+
+    public DangerLevel getDangerLevel() {
+        return dangerLevel;
+    }
+
+    public void setProfit(Integer profit) {
+        this.profit = profit;
+    }
+
+    public void setDangerLevel(DangerLevel dangerLevel) {
+        this.dangerLevel = dangerLevel;
+    }
+
+    public double getDensity() {
+        return (double) profit / (double) dangerLevel.value;
     }
 
     public void execute(PlayerAction playerAction, GameObject bot, GameState gameState) {
-        this.logic.execute(playerAction, bot, gameState);
+        logic.execute(playerAction, bot, gameState);
     }
 }

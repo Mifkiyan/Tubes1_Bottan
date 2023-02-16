@@ -26,13 +26,13 @@ public class Main {
                 .build();
 
         hubConnection.on("Disconnect", (id) -> {
-            System.out.println("Disconnected:");
+            logger.warn("Disconnected:");
 
             hubConnection.stop();
         }, UUID.class);
 
         hubConnection.on("Registered", (id) -> {
-            System.out.println("Registered with the runner " + id);
+            logger.info("Registered with the runner " + id);
 
             Position position = new Position();
             GameObject bot = new GameObject(id, 10, 20, 0, position, ObjectTypes.PLAYER, Effects.parse(0));
@@ -48,17 +48,23 @@ public class Main {
             }
 
             for (Map.Entry<String, List<Integer>> objectEntry : gameStateDto.getPlayerObjects().entrySet()) {
+                // if (UUID.fromString(objectEntry.getKey()).equals(botService.getBot().getId()))
+                //     System.out.println(objectEntry.getValue());
                 gameState.getPlayerGameObjects().add(GameObject.FromStateList(UUID.fromString(objectEntry.getKey()), objectEntry.getValue()));
             }
 
             botService.setGameState(gameState);
         }, GameStateDto.class);
 
+        hubConnection.on("ReceivePlayerConsumed", () -> logger.info("Bot consumed"));
+
+        hubConnection.on("ReceiveGameComplete", (info) -> logger.info("Game complete: " + info), String.class);
+
         hubConnection.start().blockingAwait();
 
         Thread.sleep(1000);
-        System.out.println("Registering with the runner...");
-        hubConnection.send("Register", token, "Coffee Bot");
+        logger.info("Registering with the runner...");
+        hubConnection.send("Register", token, "Bottan");
 
         //This is a blocking call
         hubConnection.start().subscribe(() -> {
@@ -79,5 +85,6 @@ public class Main {
         });
 
         hubConnection.stop();
+        System.exit(0);
     }
 }

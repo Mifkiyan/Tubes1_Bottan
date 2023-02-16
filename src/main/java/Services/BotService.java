@@ -2,20 +2,24 @@ package Services;
 
 import Enums.*;
 import Models.*;
+import Utils.Util;
 
 import java.util.*;
 import java.util.stream.*;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BotService {
     private GameObject bot;
     private PlayerAction playerAction;
     private GameState gameState;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public BotService() {
         this.playerAction = new PlayerAction();
         this.gameState = new GameState();
     }
-
 
     public GameObject getBot() {
         return this.bot;
@@ -34,22 +38,95 @@ public class BotService {
     }
 
     public void computeNextPlayerAction(PlayerAction playerAction) {
+        var rand = new Random();
+        var command = Command.EAT_NEAREST_FOOD;
         playerAction.setAction(PlayerActions.FORWARD);
-        playerAction.setHeading(new Random().nextInt(360));
+        playerAction.setHeading(rand.nextInt(360));
 
-        Command.EAT_NEAREST_FOOD.execute(playerAction, bot, gameState);
+        setUpAttackingSituation();
+        setUpFeedingSituation();
 
-        // if (!gameState.getGameObjects().isEmpty()) {
-        //     var foodList = gameState.getGameObjects()
-        //             .stream().filter(item -> item.getGameObjectType() == ObjectTypes.Food)
-        //             .sorted(Comparator
-        //                     .comparing(item -> getDistanceBetween(bot, item)))
-        //             .collect(Collectors.toList());
+        var commands = Arrays.asList(Command.values())
+                .stream()
+                .sorted(Comparator.comparing(Command::getDensity, Comparator.reverseOrder()))
+                .collect(Collectors.toList());
 
-        //     playerAction.heading = getHeadingBetween(foodList.get(0));
-        // }
+        // commands.forEach(
+        //         item -> System.out.println(String.format("{Command: %s, Profit: %d, DangerLevel: %s, Density: %f}",
+        //                 item.toString(), item.getProfit(), item.getDangerLevel().toString(), item.getDensity())));
 
+        int idx = 0;
+        do {
+            command = commands.get(idx);
+            idx++;
+        } while (command.getDangerLevel() == DangerLevel.EXTREME && idx < Command.values().length);
+
+        if (bot.getSize() > 50 && bot.torpedoSalvoCount > 3) {
+            System.out.println("Torpedo count: " + bot.torpedoSalvoCount);
+            command = Command.FIRE_TORPEDO;
+        }
+
+        command.execute(playerAction, bot, gameState);
+        logger.info("Execute command: " + command.toString());
         this.playerAction = playerAction;
+    }
+
+    void setUpFeedingSituation() {
+        if (gameState.gameObjects.isEmpty()) {
+            return;
+        }
+        var nearestFood = gameState.getGameObjects()
+                .stream()
+                .filter(item -> item.getGameObjectType() == ObjectTypes.FOOD
+                        || item.getGameObjectType() == ObjectTypes.SUPERFOOD)
+                .min(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
+                .orElse(null);
+        Command.EAT_NEAREST_FOOD.setProfit(0);
+        Command.EAT_NEAREST_FOOD.setDangerLevel(DangerLevel.LOW);
+        if (nearestFood != null) {
+            Command.EAT_NEAREST_FOOD.setProfit(bot.speed);
+            if (bot.activEffects.contains(Effects.SUPERFOOD)) {
+                Command.EAT_NEAREST_FOOD.setProfit(bot.speed * 2);
+            }
+            Command.EAT_NEAREST_FOOD.setDangerLevel(DangerLevel.valueOf(
+                    (int) Math.min(5, 1 + Math.ceil(Util.normalize(
+                            Util.euclideanDistance(nearestFood.getPosition(), gameState.getWorld().getCenterPoint()), 0,
+                            gameState.getWorld().getRadius()) * 4))));
+        }
+    }
+
+    void setUpAttackingSituation() {
+        Command.ESCAPE_FROM_ATTACKER.setDangerLevel(DangerLevel.LOW);
+        if (gameState.playerGameObjects.isEmpty()) {
+            return;
+        }
+        var opponentList = gameState.getPlayerGameObjects()
+                .stream()
+                .filter(item -> !item.getId().equals(bot.getId()))
+                .sorted(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
+                .collect(Collectors.toList());
+        var enemy1 = opponentList.get(0); // nearest from bot
+        var enemy2 = opponentList // nearest from enemy1
+                .stream()
+                .filter(item -> !item.getId().equals(enemy1.getId()))
+                .min(Comparator.comparing(item -> Util.getDistanceBetween(item, enemy1)))
+                .orElse(null);
+
+        Command.ATTACK_NEAREST_OPPONENT.setProfit(enemy1.getSize() / 2);
+
+        if (enemy1.size > bot.size - 6) {
+            Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.EXTREME);
+            Command.ESCAPE_FROM_ATTACKER.setProfit(enemy1.size - (int) Util.getDistanceBetween(bot, enemy1));
+        } else {
+            Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.HIGH);
+            if (enemy2 != null) {
+                if (Util.getDistanceBetween(enemy1, enemy2) < Util.getDistanceBetween(enemy1, bot)) {
+                    Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.EXTREME);
+                } else {
+                    Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.VERY_HIGH);
+                }
+            }
+        }
     }
 
     public GameState getGameState() {
@@ -62,25 +139,9 @@ public class BotService {
     }
 
     private void updateSelfState() {
-        Optional<GameObject> optionalBot = gameState.getPlayerGameObjects().stream().filter(gameObject -> gameObject.id.equals(bot.id)).findAny();
+        Optional<GameObject> optionalBot = gameState.getPlayerGameObjects().stream()
+                .filter(gameObject -> gameObject.id.equals(bot.id)).findAny();
         optionalBot.ifPresent(bot -> this.bot = bot);
     }
-
-    private double getDistanceBetween(GameObject object1, GameObject object2) {
-        var triangleX = Math.abs(object1.getPosition().x - object2.getPosition().x);
-        var triangleY = Math.abs(object1.getPosition().y - object2.getPosition().y);
-        return Math.sqrt(triangleX * triangleX + triangleY * triangleY);
-    }
-
-    private int getHeadingBetween(GameObject otherObject) {
-        var direction = toDegrees(Math.atan2(otherObject.getPosition().y - bot.getPosition().y,
-                otherObject.getPosition().x - bot.getPosition().x));
-        return (direction + 360) % 360;
-    }
-
-    private int toDegrees(double v) {
-        return (int) (v * (180 / Math.PI));
-    }
-
 
 }
