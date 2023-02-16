@@ -51,20 +51,20 @@ public class BotService {
                 .sorted(Comparator.comparing(Command::getDensity, Comparator.reverseOrder()))
                 .collect(Collectors.toList());
 
-        // commands.forEach(
-        //         item -> System.out.println(String.format("{Command: %s, Profit: %d, DangerLevel: %s, Density: %f}",
-        //                 item.toString(), item.getProfit(), item.getDangerLevel().toString(), item.getDensity())));
-
         int idx = 0;
         do {
             command = commands.get(idx);
             idx++;
         } while (command.getDangerLevel() == DangerLevel.EXTREME && idx < Command.values().length);
 
-        if (bot.getSize() > 50 && bot.torpedoSalvoCount > 3) {
-            System.out.println("Torpedo count: " + bot.torpedoSalvoCount);
-            command = Command.FIRE_TORPEDO;
-        }
+        // if (bot.getSize() > 50 && bot.torpedoSalvoCount > 3) {
+        // System.out.println("Torpedo count: " + bot.torpedoSalvoCount);
+        // command = Command.FIRE_TORPEDO;
+        // }
+
+        logger.info(String.format("{Command: %s, Profit: %d, DangerLevel: %s, Density: %f}",
+                Command.FIRE_TORPEDO.toString(), Command.FIRE_TORPEDO.getProfit(),
+                Command.FIRE_TORPEDO.getDangerLevel().toString(), Command.FIRE_TORPEDO.getDensity()));
 
         command.execute(playerAction, bot, gameState);
         logger.info("Execute command: " + command.toString());
@@ -97,6 +97,9 @@ public class BotService {
 
     void setUpAttackingSituation() {
         Command.ESCAPE_FROM_ATTACKER.setDangerLevel(DangerLevel.LOW);
+        Command.FIRE_TORPEDO.setDangerLevel(DangerLevel
+                .valueOf((int) Math.max(1,
+                        Math.min(5, 5 - Math.floor(Util.normalize(Math.sqrt(bot.getSize()), 15, 7) * 5)))));
         if (gameState.playerGameObjects.isEmpty()) {
             return;
         }
@@ -111,6 +114,11 @@ public class BotService {
                 .filter(item -> !item.getId().equals(enemy1.getId()))
                 .min(Comparator.comparing(item -> Util.getDistanceBetween(item, enemy1)))
                 .orElse(null);
+
+        Command.FIRE_TORPEDO.setProfit(bot.torpedoSalvoCount > 0
+                ? (int) (enemy1.getSize()
+                        / Util.normalize(Util.getDistanceBetween(bot, enemy1), gameState.getWorld().getRadius(), 0))
+                : 0);
 
         Command.ATTACK_NEAREST_OPPONENT.setProfit(enemy1.getSize() / 2);
 
