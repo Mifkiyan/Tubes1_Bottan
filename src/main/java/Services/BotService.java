@@ -61,6 +61,11 @@ public class BotService {
             idx++;
         } while (command.getDangerLevel() == DangerLevel.EXTREME && idx < Command.values().length);
 
+        if (bot.getSize() > 50 && bot.torpedoSalvoCount > 3) {
+            System.out.println("Torpedo count: " + bot.torpedoSalvoCount);
+            command = Command.FIRE_TORPEDO;
+        }
+
         command.execute(playerAction, bot, gameState);
         logger.info("Execute command: " + command.toString());
         this.playerAction = playerAction;
@@ -84,9 +89,9 @@ public class BotService {
                 Command.EAT_NEAREST_FOOD.setProfit(bot.speed * 2);
             }
             Command.EAT_NEAREST_FOOD.setDangerLevel(DangerLevel.valueOf(
-                    (int) Math.ceil(Util.normalize(
+                    (int) Math.min(5, 1 + Math.ceil(Util.normalize(
                             Util.euclideanDistance(nearestFood.getPosition(), gameState.getWorld().getCenterPoint()), 0,
-                            gameState.getWorld().getRadius()) * 5)));
+                            gameState.getWorld().getRadius()) * 4))));
         }
     }
 
@@ -111,12 +116,11 @@ public class BotService {
 
         if (enemy1.size > bot.size - 6) {
             Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.EXTREME);
-            Command.ESCAPE_FROM_ATTACKER.setProfit(enemy1.size - (int) Util.getDistanceBetween(enemy1, bot) / 2);
+            Command.ESCAPE_FROM_ATTACKER.setProfit(enemy1.size - (int) Util.getDistanceBetween(bot, enemy1));
         } else {
             Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.HIGH);
             if (enemy2 != null) {
-                if (enemy2.size > enemy1.size
-                        && Util.getDistanceBetween(enemy1, enemy2) < Util.getDistanceBetween(enemy1, bot)) {
+                if (Util.getDistanceBetween(enemy1, enemy2) < Util.getDistanceBetween(enemy1, bot)) {
                     Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.EXTREME);
                 } else {
                     Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.VERY_HIGH);

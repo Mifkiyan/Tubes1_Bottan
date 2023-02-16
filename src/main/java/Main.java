@@ -48,6 +48,8 @@ public class Main {
             }
 
             for (Map.Entry<String, List<Integer>> objectEntry : gameStateDto.getPlayerObjects().entrySet()) {
+                // if (UUID.fromString(objectEntry.getKey()).equals(botService.getBot().getId()))
+                //     System.out.println(objectEntry.getValue());
                 gameState.getPlayerGameObjects().add(GameObject.FromStateList(UUID.fromString(objectEntry.getKey()), objectEntry.getValue()));
             }
 
@@ -83,5 +85,6 @@ public class Main {
         });
 
         hubConnection.stop();
+        System.exit(0);
     }
 }

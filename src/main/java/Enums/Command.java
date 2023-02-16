@@ -58,6 +58,19 @@ public enum Command {
                 playerAction.setHeading(-Util.getHeadingBetween(bot, nearestOpponent));
             }
         }
+    }),
+
+    FIRE_TORPEDO((playerAction, bot, gameState) -> {
+        if (!gameState.getGameObjects().isEmpty()) {
+            var nearestOpponent = gameState.getPlayerGameObjects()
+                    .stream()
+                    .filter(item -> !item.getId().equals(bot.getId()))
+                    .min(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
+                    .get();
+
+            playerAction.setAction(PlayerActions.FIRETORPEDOES);
+            playerAction.setHeading(Util.getHeadingBetween(bot, nearestOpponent));
+        }
     });
 
     private final CommandLogic logic;
