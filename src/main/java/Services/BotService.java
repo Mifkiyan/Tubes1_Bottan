@@ -38,13 +38,19 @@ public class BotService {
     }
 
     public void computeNextPlayerAction(PlayerAction playerAction) {
-        var rand = new Random();
-        var command = Command.EAT_NEAREST_FOOD;
-        playerAction.setAction(PlayerActions.FORWARD);
-        playerAction.setHeading(rand.nextInt(360));
-
         setUpAttackingSituation();
         setUpFeedingSituation();
+        setUpDefendingSituation();
+
+        var command = determineCommand();
+
+        command.execute(playerAction, bot, gameState);
+        logger.info("Execute command: " + command.toString());
+        this.playerAction = playerAction;
+    }
+
+    private Command determineCommand() {
+        Command command;
 
         var commands = Arrays.asList(Command.values())
                 .stream()
@@ -57,21 +63,17 @@ public class BotService {
             idx++;
         } while (command.getDangerLevel() == DangerLevel.EXTREME && idx < Command.values().length);
 
-        // if (bot.getSize() > 50 && bot.torpedoSalvoCount > 3) {
-        // System.out.println("Torpedo count: " + bot.torpedoSalvoCount);
-        // command = Command.FIRE_TORPEDO;
-        // }
+        if (idx == Command.values().length) {
+            var rand = new Random();
+            playerAction.setAction(PlayerActions.FORWARD);
+            playerAction.setHeading(rand.nextInt(360));
+            command = Command.NOTHING;
+        }
 
-        logger.info(String.format("{Command: %s, Profit: %d, DangerLevel: %s, Density: %f}",
-                Command.FIRE_TORPEDO.toString(), Command.FIRE_TORPEDO.getProfit(),
-                Command.FIRE_TORPEDO.getDangerLevel().toString(), Command.FIRE_TORPEDO.getDensity()));
-
-        command.execute(playerAction, bot, gameState);
-        logger.info("Execute command: " + command.toString());
-        this.playerAction = playerAction;
+        return command;
     }
 
-    void setUpFeedingSituation() {
+    private void setUpFeedingSituation() {
         if (gameState.gameObjects.isEmpty()) {
             return;
         }
@@ -95,11 +97,39 @@ public class BotService {
         }
     }
 
-    void setUpAttackingSituation() {
-        Command.ESCAPE_FROM_ATTACKER.setDangerLevel(DangerLevel.LOW);
+    private void setUpDefendingSituation() {
+        if (gameState.gameObjects.isEmpty()) {
+            return;
+        }
+        var torpedoesCount = gameState.gameObjects
+                .stream()
+                .filter(item -> item.getGameObjectType() == ObjectTypes.TORPEDO_SALVO)
+                .filter(item -> Util.isValueBetween(
+                        Math.abs(item.currentHeading - Util.getHeadingBetween(bot, item)), 179, 181))
+                .filter(item -> Util.getDistanceBetween(item, bot) <= 1200)
+                .count();
+        // batas ukuran untuk penggunaan shield adalah 50
+        Command.ACTIVATE_SHIELD.setDangerLevel(DangerLevel
+                .valueOf((int) Math.max(1,
+                        Math.min(5, 5 - Math.floor(Util.normalize(Math.sqrt(bot.getSize()), 20, 7) * 5)))));
+        Command.ACTIVATE_SHIELD
+                .setProfit(bot.shieldCount > 0 && !bot.activEffects.contains(Effects.SHIELD)
+                        ? (int) torpedoesCount * Command.ATTACK_NEAREST_OPPONENT.getDangerLevel().value * 3
+                        : 0);
+
+        Command.AVOID_TORPEDOES
+                .setProfit(!bot.activEffects.contains(Effects.SHIELD)
+                        ? (int) torpedoesCount * bot.getSpeed()
+                        : 0);
+
+        Command.AVOID_GAS_CLOUD.setProfit(bot.activEffects.contains(Effects.GAS_CLOUD) ? bot.size * bot.speed / 2 : 0);
+
+    }
+
+    private void setUpAttackingSituation() {
         Command.FIRE_TORPEDO.setDangerLevel(DangerLevel
                 .valueOf((int) Math.max(1,
-                        Math.min(5, 5 - Math.floor(Util.normalize(Math.sqrt(bot.getSize()), 15, 7) * 5)))));
+                        Math.min(5, 5 - Math.floor(Util.normalize(Math.sqrt(bot.getSize()), 15, 5) * 5)))));
         if (gameState.playerGameObjects.isEmpty()) {
             return;
         }
@@ -115,23 +145,27 @@ public class BotService {
                 .min(Comparator.comparing(item -> Util.getDistanceBetween(item, enemy1)))
                 .orElse(null);
 
+        final var x = Util.getDistanceBetween(bot, enemy1);
+
         Command.FIRE_TORPEDO.setProfit(bot.torpedoSalvoCount > 0
                 ? (int) (enemy1.getSize()
-                        / Util.normalize(Util.getDistanceBetween(bot, enemy1), gameState.getWorld().getRadius(), 0))
+                        / Util.normalize(
+                                x, gameState.getWorld().getRadius() / 4,
+                                0))
                 : 0);
 
         Command.ATTACK_NEAREST_OPPONENT.setProfit(enemy1.getSize() / 2);
 
         if (enemy1.size > bot.size - 6) {
             Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.EXTREME);
-            Command.ESCAPE_FROM_ATTACKER.setProfit(enemy1.size - (int) Util.getDistanceBetween(bot, enemy1));
+            Command.ESCAPE_FROM_ATTACKER.setProfit(enemy1.size - (int) x);
         } else {
-            Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.HIGH);
+            Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.MODERATE);
             if (enemy2 != null) {
-                if (Util.getDistanceBetween(enemy1, enemy2) < Util.getDistanceBetween(enemy1, bot)) {
-                    Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.EXTREME);
-                } else {
+                if (Util.getDistanceBetween(enemy1, enemy2) < x) {
                     Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.VERY_HIGH);
+                } else {
+                    Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.HIGH);
                 }
             }
         }
