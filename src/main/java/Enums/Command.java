@@ -61,6 +61,10 @@ public enum Command {
             playerAction.setAction(PlayerActions.FORWARD);
             playerAction.setHeading(Util.getHeadingBetween(bot, nearestOpponent));
         }
+        if (Util.euclideanDistance(bot.position, gameState.world.centerPoint) - bot.size > gameState.world.radius
+                - 50) {
+            playerAction.setHeading(Util.getHeadingToCenter(bot) + 45);
+        }
     }),
 
     ESCAPE_FROM_ATTACKER((playerAction, bot, gameState) -> {
@@ -137,7 +141,8 @@ public enum Command {
         var torpedo = gameState.getGameObjects()
                 .stream()
                 .filter(item -> item.getGameObjectType() == ObjectTypes.TORPEDO_SALVO)
-                .filter(item -> Util.isValueBetween(Math.abs(item.currentHeading - Util.getHeadingBetween(bot, item)), 179, 181))
+                .filter(item -> Util.isValueBetween(Math.abs(item.currentHeading - Util.getHeadingBetween(bot, item)),
+                        179, 181))
                 .min(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
                 .orElse(null);
 
