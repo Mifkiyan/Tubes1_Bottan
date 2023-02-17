@@ -114,7 +114,7 @@ public class BotService {
                         Math.min(5, 5 - Math.floor(Util.normalize(Math.sqrt(bot.getSize()), 20, 7) * 5)))));
         Command.ACTIVATE_SHIELD
                 .setProfit(bot.shieldCount > 0 && !bot.activEffects.contains(Effects.SHIELD)
-                        ? (int) torpedoesCount * Command.ATTACK_NEAREST_OPPONENT.getDangerLevel().value * 3
+                        ? (int) torpedoesCount * Command.ATTACK_NEAREST_OPPONENT.getDangerLevel().value * 7
                         : 0);
 
         Command.AVOID_TORPEDOES

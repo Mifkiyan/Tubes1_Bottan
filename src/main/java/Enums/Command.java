@@ -132,8 +132,12 @@ public enum Command {
                 .orElse(null);
 
         if (gas != null) {
+            var headingBotGas = Util.getHeadingBetween(bot, gas);
+            var heading = Util.isValueBetween(Math.abs(Util.getHeadingToCenter(bot) - headingBotGas - 95), 0, 180)
+                    ? headingBotGas + 95
+                    : headingBotGas - 95;
             playerAction.setAction(PlayerActions.FORWARD);
-            playerAction.setHeading(Util.getHeadingBetween(bot, gas) + 90);
+            playerAction.setHeading(heading);
         }
     }),
 
@@ -147,8 +151,12 @@ public enum Command {
                 .orElse(null);
 
         if (torpedo != null) {
+            var headingBotGas = Util.getHeadingBetween(bot, torpedo);
+            var heading = Util.isValueBetween(Math.abs(Util.getHeadingToCenter(bot) - headingBotGas - 30), 0, 180)
+                    ? headingBotGas + 30
+                    : headingBotGas - 30;
             playerAction.setAction(PlayerActions.FORWARD);
-            playerAction.setHeading(Util.getHeadingBetween(bot, torpedo) + 15);
+            playerAction.setHeading(heading);
         }
     });
 
