@@ -128,10 +128,12 @@ public class BotService {
                 .min(Comparator.comparing(item -> Util.getDistanceBetween(item, enemy1)))
                 .orElse(null);
 
+        final var x = Util.getDistanceBetween(bot, enemy1);
+
         Command.FIRE_TORPEDO.setProfit(bot.torpedoSalvoCount > 0
                 ? (int) (enemy1.getSize()
                         / Util.normalize(
-                                Math.pow(Util.getDistanceBetween(bot, enemy1), 2), gameState.getWorld().getRadius() * 2,
+                                x * x, gameState.getWorld().getRadius() * 2,
                                 0))
                 : 0);
 
@@ -139,11 +141,11 @@ public class BotService {
 
         if (enemy1.size > bot.size - 6) {
             Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.EXTREME);
-            Command.ESCAPE_FROM_ATTACKER.setProfit(enemy1.size - (int) Util.getDistanceBetween(bot, enemy1));
+            Command.ESCAPE_FROM_ATTACKER.setProfit(enemy1.size - (int) x);
         } else {
             Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.MODERATE);
             if (enemy2 != null) {
-                if (Util.getDistanceBetween(enemy1, enemy2) < Util.getDistanceBetween(enemy1, bot)) {
+                if (Util.getDistanceBetween(enemy1, enemy2) < x) {
                     Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.VERY_HIGH);
                 } else {
                     Command.ATTACK_NEAREST_OPPONENT.setDangerLevel(DangerLevel.HIGH);
