@@ -40,7 +40,7 @@ public enum Command {
                 playerAction.setHeading(Util.getHeadingBetween(bot, nearestFood));
             }
             if (Util.euclideanDistance(bot.position, gameState.world.centerPoint) - bot.size > gameState.world.radius
-                    - 50) {
+                    - 20) {
                 if (foodHeadingToCenter != null) {
                     playerAction.setHeading(Util.getHeadingBetween(bot, foodHeadingToCenter));
                 } else {
