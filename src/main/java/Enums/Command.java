@@ -16,10 +16,14 @@ public enum Command {
                     .filter(item -> item.getGameObjectType() == ObjectTypes.FOOD
                             || item.getGameObjectType() == ObjectTypes.SUPERFOOD)
                     .min(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
-                    .get();
+                    .orElse(null);
 
             playerAction.setAction(PlayerActions.FORWARD);
-            playerAction.setHeading(Util.getHeadingBetween(bot, nearestFood));
+            if (nearestFood != null) {
+                playerAction.setHeading(Util.getHeadingBetween(bot, nearestFood));
+            } else {
+                playerAction.setHeading(Util.getHeadingToCenter(bot));
+            }
         }
     }),
 
@@ -34,6 +38,9 @@ public enum Command {
             playerAction.setAction(PlayerActions.FORWARD);
             playerAction.setHeading(Util.getHeadingBetween(bot, nearestOpponent));
         }
+        if (Util.euclideanDistance(bot.position, gameState.world.centerPoint) - bot.size > gameState.world.radius - 50) {
+            playerAction.setHeading(Util.getHeadingToCenter(bot) + 45);
+        }
     }),
 
     ESCAPE_FROM_ATTACKER((playerAction, bot, gameState) -> {
@@ -47,15 +54,30 @@ public enum Command {
                     .stream()
                     .filter(item -> (item.getGameObjectType() == ObjectTypes.FOOD
                             || item.getGameObjectType() == ObjectTypes.SUPERFOOD)
-                            && Util.getHeadingBetween(bot, item) > Util.getHeadingBetween(nearestOpponent, item))
+                            && Util.valueBetween(Math.abs(
+                                    nearestOpponent.currentHeading - Util.getHeadingBetween(item, nearestOpponent)), 0,
+                                    180))
+                    .min(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
+                    .orElse(null);
+            var nearestFood = gameState.getGameObjects()
+                    .stream()
+                    .filter(item -> (item.getGameObjectType() == ObjectTypes.FOOD
+                            || item.getGameObjectType() == ObjectTypes.SUPERFOOD))
                     .min(Comparator.comparing(item -> Util.getDistanceBetween(bot, item)))
                     .orElse(null);
 
             playerAction.setAction(PlayerActions.FORWARD);
-            if (targetFood != null) {
-                playerAction.setHeading(Util.getHeadingBetween(bot, targetFood));
+            if (targetFood != null && nearestFood != null) {
+                if (Util.getDistanceBetween(bot, nearestOpponent) < gameState.world.radius) {
+                    playerAction.setHeading(Util.getHeadingBetween(bot, nearestFood));
+                } else {
+                    playerAction.setHeading(Util.getHeadingBetween(bot, targetFood));
+                }
             } else {
-                playerAction.setHeading(-Util.getHeadingBetween(bot, nearestOpponent));
+                playerAction.setHeading(Util.getHeadingToCenter(bot));
+            }
+            if (Util.euclideanDistance(bot.position, gameState.world.centerPoint) - bot.size > gameState.world.radius - 50) {
+                playerAction.setHeading(Util.getHeadingToCenter(bot) + 45);
             }
         }
     }),
@@ -71,6 +93,10 @@ public enum Command {
             playerAction.setAction(PlayerActions.FIRETORPEDOES);
             playerAction.setHeading(Util.getHeadingBetween(bot, nearestOpponent));
         }
+    }),
+
+    ACTIVATE_SHIELD((playerAction, bot, gameState) -> {
+        playerAction.setAction(PlayerActions.ACTIVATESHIELD);
     });
 
     private final CommandLogic logic;
