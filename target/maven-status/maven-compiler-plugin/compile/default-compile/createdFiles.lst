@@ -1,0 +1,15 @@
+Models/PlayerAction.class
+Utils/Util.class
+Enums/Command.class
+Models/GameObject.class
+Enums/Effects.class
+Models/World.class
+Services/BotService.class
+Main.class
+Models/Position.class
+Enums/PlayerActions.class
+Models/GameStateDto.class
+Utils/CommandLogic.class
+Models/GameState.class
+Enums/DangerLevel.class
+Enums/ObjectTypes.class
